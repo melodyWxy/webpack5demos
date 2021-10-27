@@ -1,7 +1,10 @@
 {
-  "rules": {},
+  "rules": {
+    "no-console": "warn"
+  },
   "env": {
     "es6": true,
+    "node": true,
     "browser": true
   },
   "parserOptions": {
