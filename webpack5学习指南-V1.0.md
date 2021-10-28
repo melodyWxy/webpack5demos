@@ -4212,20 +4212,7 @@ sourcemap文件用来描述 源码文件和bundle文件的代码位置映射关�
 
 
 ### 2.1.2 resolve使用
-+ path.resolve
-在webpack中，很多情况下需要用到文件的绝对路径来精准的命中文件。path.resolve结合__dirname,是比较常用的写法。如：
-```js
-{
-  // ...others
-  output: {
-    path: path.resolve(__dirname, 'dist'), //求出绝对路径
-    filename: 'bundle.js'
-  },
-  //// ...others
-}
-```
-+ require.resolve？
-用来获取模块的ID
+迁移至2.2.1
 ### 2.1.3 devServer
 开发环境下，我们往往需要启动一个web服务，方便我们模拟一个用户从浏览器中访问我们的web服务，读取我们的打包产物，以观测我们的代码在客户端的表现。
 webpack内置了这样的功能，我们只需要简单的配置就可以开启它。
@@ -4622,14 +4609,257 @@ module.exports = {
 
 
 ## 2.2 模块
+在模块化编程中，开发者将程序分解为功能离散的文件，并称之为模块。
+每个模块都拥有小于完整程序的体积，使得验证、调试及测试变得轻而易举。 
+精心编写的模块提供了可靠的抽象和封装界限，使得应用程序中每个模块都具备了条理清晰的设计和明确的目的。
 
-### 2.2.1 ECMAScript模块
+Node.js 从一开始就支持模块化编程。 
+但，浏览器端的模块化还在缓慢支持中——截止到2021，大多主流浏览器已支持ESM模块化，因此基于ESM的打包工具生态逐渐开始活跃。
 
-### 2.2.2 Webpack模块
+在前端工程化圈子里存在多种支持 JavaScript 模块化的工具，这些工具各有优势和限制。 
+Webpack从这些系统中汲取了经验和教训，并将 模块 的概念应用到项目的任何文件中。
 
-### 2.2.3 依赖图
+### 2.2.1 webpack中的模块解析、resolve与外部扩展
+在讲webpack模块解析之前，我们先了解下webpack模块的概念，以及简单探究下webpack的具体实现。
+#### webpack 模块
++ 何为 webpack 模块
+能在webpack工程化环境里成功导入的模块,都可以视作webpack模块。
+与 Node.js 模块相比，webpack 模块 能以各种方式表达它们的依赖关系。下面是一些示例：
 
-### 2.2.4 依赖管理
+  + ES2015 import 语句
+  + CommonJS require() 语句
+  + AMD define 和 require 语句
+  + css/sass/less 文件中的 @import 语句。
+  + stylesheet url(...) 或者 HTML \<img src=...\> 文件中的图片链接。
+
++ 支持的模块类型
+Webpack 天生支持如下模块类型：
+
+  + ECMAScript 模块
+  + CommonJS 模块
+  + AMD 模块
+  + Assets
+  + WebAssembly 模块
+
+而我们早就发现——通过 loader 可以使 webpack 支持多种语言和预处理器语法编写的模块。loader 向 webpack 描述了如何处理非原生模块，并将相关依赖引入到你的 bundles中。包括且不限于：
+
+  + TypeScript
+  + Sass
+  + Less
+  + JSON
+  + YAML
+
+总的来讲，这些都可以被认为是webpack模块。
+
+#### compiler与Resolvers
+在我们运行webpack的时候(就是我们执行webpack命令进行打包时)，其实就是相当于执行了下面的代码：
+```js
+const webpack = require('webpack');
+const compiler = webpack({
+  // ...这是我们配置的webpackconfig对象
+}) 
+```
+webpack的执行会返回一个描述webpack打包编译整个流程的对象，我们将其称之为compiler。
+compiler对象描述整个webpack打包流程———它内置了一个打包状态，随着打包过程的进行，状态也会实时变更，同时触发对应的webpack生命周期钩子。
+(简单点讲，我们可以将其类比为一个Promise对象，状态从打包前，打包中到打包完成或者打包失败。)
+每一次webpack打包，就是创建一个compiler对象，走完整个生命周期的过程。
+
+而webpack中所有关于模块的解析，都是compiler对象里的内置模块解析器去工作的————简单点讲，你可以理解为这个对象上的一个属性，我们称之为Resolvers。
+webpack的Resolvers解析器的主体功能就是模块解析，它是基于enhanced-resolve这个包实现的————换句话讲，在webpack中，无论你使用怎样的模块引入语句，本质其实都是在调用这个包的api进行模块路径解析。
+
+#### 模块解析
+webpack通过Resolvers实现了模块之间的依赖和引用。举个例子：
+```js
+import _ from 'lodash';
+// 或者
+const add = require('./utils/add');
+```
+所引用的模块可以是来自应用程序的代码，也可以是第三方库。 
+resolver 帮助 webpack 从每个 require/import 语句中，找到需要引入到 bundle 中的模块代码。
+当打包模块时，webpack 使用 enhanced-resolve 来解析文件路径。
+(webpack_resolver的代码实现很有思想，webpack基于此进行treeshaking，这个概念我们后面会讲到)。
+
++ webpack中的模块路径解析规则
+通过内置的enhanced-resolve，webpack 能解析三种文件路径：
+1. 绝对路径
+```js
+import '/home/me/file';
+import 'C:\\Users\\me\\file';
+```
+由于已经获得文件的绝对路径，因此不需要再做进一步解析。
+2. 相对路径
+```js
+import '../utils/reqFetch';
+import './styles.css';
+```
+这种情况下，使用 import 或 require 的资源文件所处的目录，被认为是上下文目录。
+在 import/require 中给定的相对路径，enhanced-resolve会拼接此上下文路径，来生成模块的绝对路径(path.resolve(__dirname, RelativePath)
+。
+这也是我们在写代码时最常用的方式之一，另一种最常用的方式则是模块路径。
+3. 模块路径
+```js
+import 'module';
+import 'module/lib/file';
+```
+也就是在resolve.modules中指定的所有目录检索模块(node_modules里的模块已经被默认配置了)。
+你可以通过配置别名的方式来替换初始模块路径，
+具体请参照下面resolve.alias 配置选项。
+
++ resolve
+1. alias
+上文中提到我们可以通过resolve.alias来自定义配置模块路径。现在我们来是实现一下:
+首先，我们src目录下新建一个utils文件夹，并新建一个add.js文件，对外暴露出一个add函数。
+```js
+// src/utils/add.js
+export default function add(a, b){
+  return a + b;
+}
+```
+然后我们在src/index.js中基于相对路径引用并使用它：
+```js
+import add from './utils/add';
+
+console.log(add);
+```
+很好，代码跑起来了并且没有报错。
+这时我们期望能用@utils/add的方式去引用它，于是我们这样写了：
+```js
+import add from '@utils/add';
+console.log(add(a,b));
+```
+很明显它会报错，因为webpack会将其当做一个模块路径来识别———所以无法找到@utils这个模块。
+这时，我们配置下resolve：
+```js
+// webpack.config.js
+const path = require('path');
+module.exports = {
+  //...
+  resolve: {
+    alias: {
+      "@utils": path.resolve(__dirname, 'src/utils/')
+    },
+  },
+};
+```
+如代码所示，我们讲utils文件夹的绝对路径配置为一个模块路径，起一个别名为“@utils”。
+重启服务发现，代码跑起来了。模块识别成功了。
+
+2. extentions 
+上述代码中我们发现，只需要“import add from '@utils/add'”,webpack就可以帮我们找到add.js。
+事实上，这与import add from '@utils/add.js'的效果是一致的。
+为什么会这样？
+原来webpack的内置解析器已经默认定义好了一些 文件/目录 的路径解析规则。
+比如当我们
+```js
+import utils from './utils';
+```
+utils是一个文件目录而不是模块(文件)，但webpack在这种情况下默认帮我们添加了后缀“/index.js”，从而将此相对路径指向到utils里的index.js。
+这是webpack解析器默认内置好的规则。
+那么现在有一个问题：
+当utils文件夹下同时拥有add.js add.json时，"@utils/add"会指向谁呢？
+@utils/add.json
+```json
+{
+  "name": "add"
+}
+```
+我们发现仍然指向到add.js。
+当我们删掉add.js,会发现此时的引入的add变成了一个json对象。
+上述现象似乎表明了这是一个默认配置的优先级的问题。
+而webpack对外暴露了配置属性: resolve.extentions,它的用法形如：
+```js
+module.exports = {
+  //...
+  resolve: {
+    extensions: ['.js', '.json', '.wasm'],
+  },
+};
+```
+webpack会按照数组顺序去解析这些后缀名，对于同名的文件，webpack总是会先解析列在数组首位的后缀名的文件。
+
+
+#### 外部扩展(Externals)
+有时候我们为了减小bundle的体积，从而把一些不变的第三方库用cdn的形式引入进来，比如jQuery：
+index.html
+```html
+<script 
+  src="https://cdn.bootcdn.net/ajax/libs/jquery/3.6.0/jquery.js"
+></script>
+```
+这个时候我们想在我们的代码里使用引入的jquery———但似乎三种模块引入方式都不行，这时候怎么办呢？
+webpack给我们提供了Externals的配置属性，让我们可以配置外部扩展模块:
+```js
+module.exports = {
+  //...
+  externals: {
+    jquery: 'jQuery',
+  },
+};
+```
+我们尝试在代码中使用jQuery:
+```js
+// index.js
+import $ from 'jquery';
+console.log($);
+```
+发现打印成功，这说明我们已经在代码中使用它。
+注意：我们如何得知 { jquery: 'jQuery'} 中的 'jQuery'? 
+其实就是cdn里打入到window中的变量名，比如jQuery不仅有jQuery变量名，还有$，那么我们也可以写成这样子: 
+```js
+module.exports = {
+  //...
+  externals: {
+    jquery: '$',
+  },
+};
+```
+重启服务后发现，效果是一样的。
+
+
+### 2.2.2 依赖图
+每当一个文件依赖另一个文件时，webpack 会直接将文件视为存在依赖关系。
+这使得 webpack 可以获取非代码资源，如 images 或 web 字体等。并会把它们作为 依赖 提供给应用程序。
+当 webpack 开始工作时，它会根据我们写好的配置,从 入口(entry) 开始，webpack 会递归的构建一个 依赖关系图，这个依赖图包含着应用程序中所需的每个模块，然后将所有模块打包为bundle(也就是output的配置项)。
+
+单纯讲似乎很抽象，我们更期望能够可视化打包产物的依赖图————我们仅仅需要配置一个插件就可以用实现。
+```shell
+# 首先安装这个插件作为开发依赖
+# NPM
+npm install --save-dev webpack-bundle-analyzer
+# Yarn
+yarn add -D webpack-bundle-analyzer
+```
+然后我们配置它:
+```js
+const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
+
+module.exports = {
+  plugins: [
+    // ...others
+    new BundleAnalyzerPlugin()
+  ]
+}
+```
+这时我们执行打包命令，发现控制台里打印出下面这样的日志：
+```shell
+Webpack Bundle Analyzer is started at http://127.0.0.1:8888
+Use Ctrl+C to close it
+asset bundle.js 5.46 KiB [emitted] [minimized] (name: main) 1 related asset
+asset index.html 352 bytes [emitted]
+orphan modules 2.35 KiB [orphan] 3 modules
+...
+```
+我们在浏览器中打开http://127.0.0.1:8888，我们成功可视化了打包产物依赖图！
+
+注意：
+对于 HTTP/1.1 的应用程序来说，由 webpack 构建的 bundle 非常强大。当浏览器发起请求时，它能最大程度的减少应用的等待时间。
+而对于 HTTP/2 来说，我们还可以使用代码分割进行进一步优化。(开发环境观测的话需要在DevServer里进行配置{http2:true, https:false})。这个我们会在之后的课程里讲。
+
+
+
+
+
+### 2.2.3 依赖管理
 
 ## 2.3 扩展功能
 
