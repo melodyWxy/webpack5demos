@@ -12,6 +12,12 @@ const config = {
   devServer: {
     compress: true,
     port: 3000,
+    headers: {
+      'X-Fast-Id': 'p3fdg42njghm34gi9ukj',
+    },
+    historyApiFallback: true
+    // https: true,
+    // http2: true
   },
   devtool: 'source-map',
   module: {
