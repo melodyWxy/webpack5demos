@@ -7,4 +7,4 @@ import j from "$";
 // console.log(add);
 // console.log( 'xixi11122331112323');
 
-// console.log(j)
+console.log(j)
