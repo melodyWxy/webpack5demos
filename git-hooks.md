@@ -28,15 +28,6 @@ OK，它返回了这样的内容，是一串shell注释。翻译过来大概意�
 # To enable this hook, rename this file to "pre-commit".
 ```
 意思是要启用这个钩子的话，我们就把这个文件的后缀名去掉。
-好的，下面我们直接新增一个新的文件
-```shell
-vim pre-commit
-```
-然后内容写入:
-```shell
-echo pre-commit执行啦
-```
-好的，现在验证一下，index.js中新增一点内容，然后add. commit. 注意此时我们要回到项目的根目录进行操作。
 
 
 
