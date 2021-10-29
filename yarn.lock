@@ -902,6 +902,11 @@
   resolved "https://mirrors.huaweicloud.com/repository/npm/@humanwhocodes/object-schema/-/object-schema-1.2.0.tgz#87de7af9c231826fdd68ac7258f77c429e0e5fcf"
   integrity sha512-wdppn25U8z/2yiaT6YGquE6X8sSv7hNMWSXYSSU1jGv/yd6XqjXgTDJ8KP4NgjTXfJ3GbRjeeb8RTV7a/VpM+w==
 
+"@melody-core/melody-git-hook@^1.0.6":
+  version "1.0.6"
+  resolved "https://registry.yarnpkg.com/@melody-core/melody-git-hook/-/melody-git-hook-1.0.6.tgz#4d4fd6d0b555350f2865d9531f775178c77e5752"
+  integrity sha512-KK/8A11tcEa5HwnecG51O8CJb1h72JrErCHaojwgLLs6WEyR+vOkEThPQImlBFg/HL2UMzAumMrbj27zVyDNhQ==
+
 "@nodelib/fs.scandir@2.1.5":
   version "2.1.5"
   resolved "https://registry.yarnpkg.com/@nodelib/fs.scandir/-/fs.scandir-2.1.5.tgz#7619c2eb21b25483f6d167548b4cfd5a7488c3d5"
