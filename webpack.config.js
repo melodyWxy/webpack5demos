@@ -9,6 +9,14 @@ const config = {
     path: path.resolve(__dirname, 'dist'),
     filename: 'bundle.js'
   },
+  resolve: {
+    alias: {
+      "@utils": path.resolve(__dirname, './src/utils')
+    }
+  },
+  externals: {
+    "$": "jQuery"
+  },
   devServer: {
     compress: true,
     port: 3000,
@@ -47,7 +55,7 @@ const config = {
   plugins: [
     new CleanWebpackPlugin(),
     new HtmlWebpackPlugin({
-      templateContent: ({ htmlWebpackPlugin }) => `<!DOCTYPE html><html><head><meta charset="utf-8"><title>` + htmlWebpackPlugin.options.title + `</title></head><body><div id="app"></div></body></html>`,
+      template: "./public/index.html",
       filename: 'index.html',
     }),
   ]
