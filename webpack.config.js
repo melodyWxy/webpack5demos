@@ -4,11 +4,19 @@ const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 
 const config = {
-  entry: './src/index.ts',
+  entry: './src/index.js',
+  experiments: {
+    outputModule: true,
+  },
   output: {
     path: path.resolve(__dirname, 'dist'),
-    filename: 'bundle.js'
+    filename: 'mylib.js',
+    library: {
+      // name: "mylib",
+      type: "module"
+    },
   },
+
   resolve: {
     alias: {
       "@utils": path.resolve(__dirname, './src/utils')
@@ -27,7 +35,7 @@ const config = {
     // https: true,
     // http2: true
   },
-  devtool: 'source-map',
+  // devtool: 'source-map',
   module: {
     rules: [
       {
