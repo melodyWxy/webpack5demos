@@ -5,16 +5,17 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 
 const config = {
   entry: './src/index.js',
-  experiments: {
-    outputModule: true,
-  },
+  // experiments: {
+  //   outputModule: true,
+  // },
   output: {
     path: path.resolve(__dirname, 'dist'),
     filename: 'mylib.js',
     library: {
-      // name: "mylib",
-      type: "module"
+      name: "mylib",
+      type: "umd",
     },
+    globalObject: 'this',
   },
 
   resolve: {
